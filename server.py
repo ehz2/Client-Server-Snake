@@ -29,12 +29,12 @@ def handle_client(conn, addr, player_id):
             "game_state": game_state
         }
         conn.send(pickle.dumps(initial_data))
-        #print(f"Sent initial data to player {player_id}: {initial_data}")
+        print(f"Sent initial data to player {player_id}: {initial_data}")
 
         while True:
             try:
                 data = pickle.loads(conn.recv(2048))  # Increased buffer size
-                #print(f"Received data from player {player_id}: {data}")
+                print(f"Received data from player {player_id}: {data}")
                 
                 # Update player position in game state
                 game_state["players"][player_id] = data
@@ -43,7 +43,7 @@ def handle_client(conn, addr, player_id):
                 for client in clients.values():
                     client.send(pickle.dumps(game_state))
                 
-                #print(f"Broadcasted game state: {game_state}")
+                print(f"Broadcasted game state: {game_state}")
             except Exception as e:
                 print(f"Error processing client {player_id} data: {e}")
                 break
@@ -68,9 +68,6 @@ player_count = 0
 
 def update_and_broadcast_game_state():
     # Send the updated game state to all clients
-    
-    print("INSIDE THE UPDATE")
-    print(game_state)
     #print(f"Connected clients: {clients}")
     for client in clients.values():
         client.send(pickle.dumps(game_state)) 
