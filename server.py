@@ -69,7 +69,7 @@ player_count = 0
 def update_and_broadcast_game_state():
     # Send the updated game state to all clients
     
-    print("INSIDE THE MF UPDATE")
+    print("INSIDE THE UPDATE")
     print(game_state)
     #print(f"Connected clients: {clients}")
     for client in clients.values():
