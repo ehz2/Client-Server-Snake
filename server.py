@@ -29,12 +29,12 @@ def handle_client(conn, addr, player_id):
             "game_state": game_state
         }
         conn.send(pickle.dumps(initial_data))
-        print(f"Sent initial data to player {player_id}: {initial_data}")
+        #print(f"Sent initial data to player {player_id}: {initial_data}")
 
         while True:
             try:
                 data = pickle.loads(conn.recv(2048))  # Increased buffer size
-                print(f"Received data from player {player_id}: {data}")
+                #print(f"Received data from player {player_id}: {data}")
                 
                 # Update player position in game state
                 game_state["players"][player_id] = data
@@ -43,7 +43,7 @@ def handle_client(conn, addr, player_id):
                 for client in clients.values():
                     client.send(pickle.dumps(game_state))
                 
-                print(f"Broadcasted game state: {game_state}")
+                #print(f"Broadcasted game state: {game_state}")
             except Exception as e:
                 print(f"Error processing client {player_id} data: {e}")
                 break
@@ -65,6 +65,16 @@ server.listen(max_players)
 print(f"Waiting for {max_players} players...")
 player_count = 0
 
+
+def update_and_broadcast_game_state():
+    # Send the updated game state to all clients
+    
+    print("INSIDE THE MF UPDATE")
+    print(game_state)
+    #print(f"Connected clients: {clients}")
+    for client in clients.values():
+        client.send(pickle.dumps(game_state)) 
+
 while player_count < max_players:
     conn, addr = server.accept()
     player_id = player_count
@@ -76,9 +86,13 @@ while player_count < max_players:
         "direction": "RIGHT"
     }
 
+    update_and_broadcast_game_state()
+
     thread = threading.Thread(target=handle_client, args=(conn, addr, player_id))
     thread.start()
     
     player_count += 1
+    
+
 
 print("All players connected. Game starting...")

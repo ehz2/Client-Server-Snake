@@ -15,7 +15,7 @@ FOOD_COLOR = (255, 0, 0)
 BACKGROUND_COLOR = (0, 0, 0)
 
 # Network Setup
-SERVER_IP = '10.0.0.212'  # Change to actual server IP if needed
+SERVER_IP = '127.0.0.1'  # Change to actual server IP if needed
 PORT = 5555
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((SERVER_IP, PORT))
