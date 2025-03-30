@@ -37,13 +37,25 @@ clients = {}
 max_players = 0
 
 # Get user input to decide player count
-try:
-    max_players = min(4, max(2, int(input("Enter number of players (2-4): "))))
+# try:
+#     max_players = min(4, max(2, int(input("Enter number of players (2-4): "))))
 
-# At minimum, 2 players are required to proceed
-except: 
-    max_players = 2
-    print("Invalid input. Using 2 players.")
+# # At minimum, 2 players are required to proceed
+# except: 
+#     max_players = 2
+#     print("Invalid input. Using 2 players.")
+
+# Get user input to decide player count (2-4)
+while True:
+    try:
+        max_players = int(input("Enter number of players (2-4): "))
+        if 2 <= max_players <= 4:
+            break
+        else:
+            print("Please enter a number between 2 and 4.")
+    except ValueError:
+        print("Invalid input. Please enter a number (2-4).")
+print(f"Starting game with {max_players} players.")
 
 # Variables for initial food generation (Area around the center of screen)
 CENTER_X = 500  

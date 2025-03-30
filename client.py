@@ -17,12 +17,27 @@ These updates contain position of food, positions of other snakes, etc.
 pygame.init()
 
 # Constants (defines player size, screen size, etc.)
+# GAME_WIDTH = 1000
+# GAME_HEIGHT = 1000
+# SPACE_SIZE = 20
+# PLAYER_COLORS = [(0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 165, 0)]
+# FOOD_COLOR = (255, 0, 0)
+# BACKGROUND_COLOR = (0, 0, 0)
+
 GAME_WIDTH = 1000
 GAME_HEIGHT = 1000
 SPACE_SIZE = 20
-PLAYER_COLORS = [(0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 165, 0)]
-FOOD_COLOR = (255, 0, 0)
-BACKGROUND_COLOR = (0, 0, 0)
+PLAYER_COLORS = [
+    (50, 200, 50),   # Green
+    (50, 50, 200),   # Blue
+    (200, 200, 50),  # Yellow
+    (200, 100, 50)   # Orange
+]
+FOOD_COLOR = (255, 50, 50)
+BRICK_COLOR = (40, 40, 40)
+MORTAR_COLOR = (30, 30, 30)
+BRICK_WIDTH = 50
+BRICK_HEIGHT = 25
 
 # Setup the game window 
 window = pygame.display.set_mode((GAME_WIDTH, GAME_HEIGHT))
@@ -44,6 +59,51 @@ max_players = 2  # Default minimum value for multiplayer
 
 # Current direction of snake (used for moving logic)
 current_direction = None  
+
+def draw_brick_background():
+    """Draws a brick wall pattern for the bachgroun of the game"""
+    window.fill(MORTAR_COLOR)
+    
+    # Draw bricks in staggered pattern
+    for y in range(0, GAME_HEIGHT, BRICK_HEIGHT):
+        offset = BRICK_WIDTH // 2 if (y // BRICK_HEIGHT) % 2 else 0
+        for x in range(-offset, GAME_WIDTH, BRICK_WIDTH):
+            pygame.draw.rect(window, BRICK_COLOR, 
+                           (x, y, BRICK_WIDTH-2, BRICK_HEIGHT-2))
+
+def draw_snake_segment(x, y, size, color, is_head=False):
+    """Draws a single snake segment"""
+    if is_head:
+        # Draw rounded head with eyes
+        pygame.draw.ellipse(window, color, (x, y, size, size))
+        
+        # Calculate eye positions (looking in movement direction)
+        if current_direction == "RIGHT":
+            eye_positions = [(x + size//1.5, y + size//4), (x + size//1.5, y + size//1.5)]
+        elif current_direction == "LEFT":
+            eye_positions = [(x + size//4, y + size//4), (x + size//4, y + size//1.5)]
+        elif current_direction == "UP":
+            eye_positions = [(x + size//4, y + size//4), (x + size//1.5, y + size//4)]
+        else:  # DOWN
+            eye_positions = [(x + size//4, y + size//1.5), (x + size//1.5, y + size//1.5)]
+        # Draw eyes
+        for eye in eye_positions:
+            pygame.draw.circle(window, (255, 255, 255), (int(eye[0]), int(eye[1])), size//8)
+            pygame.draw.circle(window, (0, 0, 0), (int(eye[0]), int(eye[1])), size//12)
+    else:
+        # Draw tapered body segments
+        pygame.draw.rect(window, color, (x, y, size, size), border_radius=size//4)
+
+def draw_snake(player_id, body, color):
+    """Draws a complete snake with head and add the snake segment tto it"""
+    for i, segment in enumerate(body):
+        # Head is first segment
+        is_head = (i == 0)
+        # Calculate size (the tail of snake)
+        size = SPACE_SIZE
+        if not is_head:
+            size = max(SPACE_SIZE - (len(body) - i) // 3, SPACE_SIZE//2)
+        draw_snake_segment(segment[0], segment[1], size, color, is_head)
 
 
 def receive_updates():
@@ -135,7 +195,8 @@ while running:
                 current_direction = new_direction  
 
     # Draw the background
-    window.fill(BACKGROUND_COLOR)
+    #window.fill(BACKGROUND_COLOR)
+    draw_brick_background()
 
     # Check if we're in countdown mode (starting game)
     if game_state and "countdown" in game_state and game_state["countdown"]:
@@ -159,8 +220,12 @@ while running:
 
         # Draw the food
         if "food" in game_state:
-            pygame.draw.ellipse(window, FOOD_COLOR, 
-                             (game_state["food"][0], game_state["food"][1], SPACE_SIZE, SPACE_SIZE))
+            # pygame.draw.ellipse(window, FOOD_COLOR, 
+            #                  (game_state["food"][0], game_state["food"][1], SPACE_SIZE, SPACE_SIZE))
+            food_x, food_y = game_state["food"]
+            pygame.draw.ellipse(window, FOOD_COLOR, (food_x, food_y, SPACE_SIZE, SPACE_SIZE))
+            # Draw stem
+            pygame.draw.rect(window, (100, 70, 0), (food_x + SPACE_SIZE//3, food_y - SPACE_SIZE//4, 2, SPACE_SIZE//4))
 
         # Draw all snakes
         if "players" in game_state:
@@ -169,9 +234,10 @@ while running:
                 color = PLAYER_COLORS[p_id % len(PLAYER_COLORS)]
                 
                 # Draw each segment of the snake(s)
-                for segment in player_data["body"]:
-                    pygame.draw.rect(window, color, 
-                                  (segment[0], segment[1], SPACE_SIZE, SPACE_SIZE))
+                # for segment in player_data["body"]:
+                #     pygame.draw.rect(window, color, 
+                #                   (segment[0], segment[1], SPACE_SIZE, SPACE_SIZE))
+                draw_snake(p_id, player_data["body"], color)
         
         # Draw the scores of all snakes
         if "scores" in game_state:
@@ -196,6 +262,10 @@ while running:
     
     # Display the game over when the game has ended
     if game_state and "game_over" in game_state and game_state["game_over"]:
+        overlay = pygame.Surface((GAME_WIDTH, GAME_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        window.blit(overlay, (0, 0))
+        
         game_over_text = font.render("GAME OVER", True, (255, 0, 0))
         window.blit(game_over_text, (GAME_WIDTH // 2 - 75, GAME_HEIGHT // 2 - 50))
         
