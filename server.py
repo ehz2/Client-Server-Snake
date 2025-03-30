@@ -41,7 +41,7 @@ try:
     max_players = min(4, max(2, int(input("Enter number of players (2-4): "))))
 
 # At minimum, 2 players are required to proceed
-except:
+except: 
     max_players = 2
     print("Invalid input. Using 2 players.")
 
@@ -64,7 +64,10 @@ game_state = {
     "food": [random.randint(MIN_X // SPACE_SIZE, MAX_X // SPACE_SIZE) * SPACE_SIZE,
              random.randint(MIN_Y // SPACE_SIZE, MAX_Y // SPACE_SIZE) * SPACE_SIZE],
     "scores": {},
-    "game_over": False
+    "game_over": False,
+    "countdown": False,
+    "countdown_value": 3,
+    "game_started": False
 }
 
 
@@ -132,10 +135,11 @@ def handle_client(conn, addr, player_id):
             }
             game_state["scores"][str(player_id)] = 0
         
-        # Send initial player info and game state
+        # Send initial player info, game state, and max_players
         initial_data = {
             "player_id": player_id,
-            "game_state": game_state
+            "game_state": game_state,
+            "max_players": max_players  
         }
         conn.send(pickle.dumps(initial_data))
         
@@ -177,8 +181,8 @@ def handle_client(conn, addr, player_id):
     except Exception as e:
         print(f"Initial connection error with player {player_id}: {e}")
 
+    # Clean up remaining resources
     finally:
-        # Cleanup leftover resources
         with game_state_lock:
             if str(player_id) in game_state["players"]:
                 del game_state["players"][str(player_id)]
@@ -421,9 +425,13 @@ def game_loop():
     Returns: NULL (Nothing)
     """
 
-    # Gloval server game state and time
+    # Global server game state and time
     global game_state
     clock = pygame.time.Clock() if 'pygame' in globals() else None
+    
+    # Countdown variables
+    countdown_started = False
+    last_countdown_time = 0
     
     # Main loop of the game
     while True:
@@ -432,14 +440,73 @@ def game_loop():
         food_eaten = False
         players_to_remove = []
         
-        # Only proceed if there are at least 2 players
-        active_players = len(game_state["players"])
-        if active_players < 2:
-            time.sleep(0.1)  # Prevent CPU usage hogging
-            continue
-        
         with game_state_lock:
 
+            # Check if all players have connected
+            if len(game_state["players"]) == max_players and not game_state["game_started"] and not countdown_started:
+                print("All players connected. Starting countdown...")
+                game_state["countdown"] = True
+                countdown_started = True
+                last_countdown_time = time.time()
+                game_state["countdown_value"] = 3
+                
+                # Broadcast countdown start
+                try:
+                    broadcast_data = pickle.dumps(game_state)
+                    for client in clients.values():
+                        client.send(broadcast_data)
+                        
+                # Exception for error in broadcasting to clients        
+                except Exception as e:
+                    print(f"Error broadcasting countdown: {e}")
+            
+            # Handle countdown
+            if countdown_started and not game_state["game_started"]:
+                current_time = time.time()
+
+                # Increment countdown
+                if current_time - last_countdown_time >= 1:
+                    game_state["countdown_value"] -= 1
+                    last_countdown_time = current_time
+                    print(f"Countdown: {game_state['countdown_value']}")
+                    
+                    # Broadcast updated countdown
+                    try:
+                        broadcast_data = pickle.dumps(game_state)
+                        for client in clients.values():
+                            client.send(broadcast_data)
+
+                    # Exception for error in broadcasting to clients
+                    except Exception as e:
+                        print(f"Error broadcasting countdown update: {e}")
+                    
+                    # Start the game when countdown reaches 0
+                    if game_state["countdown_value"] <= 0:
+                        game_state["countdown"] = False
+                        game_state["game_started"] = True
+                        print("Game started!")
+                        
+                        # Broadcast game start
+                        try:
+                            broadcast_data = pickle.dumps(game_state)
+                            for client in clients.values():
+                                client.send(broadcast_data)
+
+                        # Exception for error in broadcasting for clients
+                        except Exception as e:
+                            print(f"Error broadcasting game start: {e}")
+                
+                # Skip the rest of the game logic until countdown finishes
+                if not game_state["game_started"]:
+                    time.sleep(0.1)  # Prevent CPU usage hogging
+                    continue
+            
+            # Only proceed if the game has started and there are at least 2 players
+            active_players = len(game_state["players"])
+            if not game_state["game_started"] or active_players < 2:
+                time.sleep(0.1)  # Prevent CPU usage hogging
+                continue
+            
             # Process each player
             for player_id, player_data in list(game_state["players"].items()):
 
@@ -503,7 +570,6 @@ def game_loop():
         # Control game speed
         if clock:
             clock.tick(SPEED)
-
         else:
             time.sleep(1/SPEED)
 
@@ -531,12 +597,14 @@ while player_count < max_players:
         thread.start()
         
         player_count += 1
+        
+        print(f"{player_count}/{max_players} players connected")
     
     # Exception in the case of failed connection
     except Exception as e:
         print(f"Error accepting connection: {e}")
 
-print("All players connected. Game has started.")
+print("All players connected. Game will start after the countdown.")
 
 # Keep the server running
 try:
