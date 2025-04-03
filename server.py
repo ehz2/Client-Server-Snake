@@ -18,8 +18,8 @@ Logic includes movement, food generation, various collisions, etc.
 # Server Constants (defines screen size, ports, etc.)
 HOST = '0.0.0.0'
 PORT = 5555
-GAME_WIDTH = 1000
-GAME_HEIGHT = 1000
+GAME_WIDTH = 800
+GAME_HEIGHT = 800
 SPACE_SIZE = 20
 BODY_PARTS = 3
 SPEED = 10

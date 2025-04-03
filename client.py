@@ -24,8 +24,8 @@ pygame.init()
 # FOOD_COLOR = (255, 0, 0)
 # BACKGROUND_COLOR = (0, 0, 0)
 
-GAME_WIDTH = 1000
-GAME_HEIGHT = 1000
+GAME_WIDTH = 800
+GAME_HEIGHT = 800
 SPACE_SIZE = 20
 PLAYER_COLORS = [
     (50, 200, 50),   # Green
@@ -47,7 +47,7 @@ pygame.display.set_caption("Multiplayer Snake")
 font = pygame.font.SysFont('Arial', 20)
 
 # Network setup & socket connection to server
-SERVER_IP = '127.0.0.1'  # Change to LAN IP if needed for multiple devices
+SERVER_IP = '142.58.88.156'  # Change to LAN IP if needed for multiple devices
 PORT = 5555
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((SERVER_IP, PORT))
